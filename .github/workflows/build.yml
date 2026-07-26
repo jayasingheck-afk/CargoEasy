@@ -18,10 +18,12 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: cd cargoeasy-desktop
+         npm install
 
       - name: Build renderer + installer
-        run: npm run dist
+        run: cd cargoeasy-desktop
+         npm run dist
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
