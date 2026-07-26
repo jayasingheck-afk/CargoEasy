@@ -75,6 +75,18 @@ app — it'll appear in the Start Menu / Applications folder from then on.
   — point this at a folder synced by Google Drive for Desktop to get
   documents into the cloud automatically.
 
+## Why sql.js instead of better-sqlite3
+
+An earlier version of this project used `better-sqlite3`, which needs a C++
+compiler (Visual Studio Build Tools on Windows) to build during `npm install`.
+That's a common source of setup pain — especially with very new Visual
+Studio releases that `node-gyp` doesn't recognize yet. `sql.js` is SQLite
+compiled to WebAssembly: it's pure JavaScript + a `.wasm` file, so there is
+**nothing to compile, on any platform, ever**. The trade-off is that sql.js
+keeps the whole database in memory and we explicitly write it to disk after
+every change (see `persist()` in `main.js`) — completely fine at this
+prototype's scale, but worth knowing if the dataset grows very large.
+
 ## First run
 
 On first launch, CargoEasy creates a default Admin account and shows the
@@ -87,8 +99,9 @@ add real accounts for your team (Viewer / Editor / Manager / Admin).
 - **Real authentication** — email + password, hashed with Node's built-in
   scrypt (no plaintext passwords anywhere), backed by a SQLite `users` table.
   Admins can add/remove users and everyone can change their own password.
-- **Real database** — shipments, users, and company profile all persist in
-  SQLite (`better-sqlite3`) instead of a flat JSON blob.
+- Real database — shipments, users, and company profile all persist in
+  SQLite (via `sql.js`, a WebAssembly build — no native compilation needed
+  on any platform) instead of a flat JSON blob.
 - Shipment intake form matching the shipping declaration layout (sender,
   receiver, shipment details, cargo contents, service options).
 - CSV template download + import with preview.
