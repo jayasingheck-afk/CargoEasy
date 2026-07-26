@@ -66,31 +66,62 @@ app — it'll appear in the Start Menu / Applications folder from then on.
 
 ## Where data is stored
 
-- By default, CargoEasy stores its data in your OS's standard app-data folder.
-- In the app, go to **Company Profile → Storage location → Choose folder…** to pick any
-  folder instead — including a folder synced by Google Drive for Desktop, so your shipment
-  data and exported documents sync to the cloud automatically.
+- **Users and shipment records** live in a real SQLite database
+  (`cargoeasy.db`) in your OS's standard app-data folder — this location never
+  changes, so your login credentials and shipment data are never at risk from
+  a folder change.
+- **Exported documents** (CSV backups, future file exports) save to whatever
+  folder you pick in **Company Profile → Storage location → Choose folder…**
+  — point this at a folder synced by Google Drive for Desktop to get
+  documents into the cloud automatically.
 
-## What's implemented in this Phase 1 build
+## First run
 
-- Role-based login (Viewer / Editor / Manager / Admin) — demo-only, no password
-  verification yet (see "Next steps" below).
-- Shipment intake form matching the shipping declaration layout (sender, receiver,
-  shipment details, cargo contents, service options).
+On first launch, CargoEasy creates a default Admin account and shows the
+generated email + temporary password **once**, right on the login screen.
+Sign in with those, then go to **Users & Roles** to change that password and
+add real accounts for your team (Viewer / Editor / Manager / Admin).
+
+## What's implemented (Phase 1 + Phase 2)
+
+- **Real authentication** — email + password, hashed with Node's built-in
+  scrypt (no plaintext passwords anywhere), backed by a SQLite `users` table.
+  Admins can add/remove users and everyone can change their own password.
+- **Real database** — shipments, users, and company profile all persist in
+  SQLite (`better-sqlite3`) instead of a flat JSON blob.
+- Shipment intake form matching the shipping declaration layout (sender,
+  receiver, shipment details, cargo contents, service options).
 - CSV template download + import with preview.
-- Company profile & logo branding.
-- HBL document generation with print-to-PDF (use your OS print dialog → "Save as PDF").
-- Local data persistence to a JSON store in your chosen folder.
+- Company profile & logo branding, including customs/CHA details.
+- All 19 reports from the original spec — manifest, customs manifest
+  (grouped HBLs), waybill, delivery, customer authorisation, inventory
+  (loaded/unloaded), receivables, payables, additional duty, overweight
+  payment, delivery payment, duty payment, tax invoices (sender + receiver),
+  despatch note, P&L, job profitability, customs pending, warehouse
+  discrepancy — all print-to-PDF ready.
+- **Manual Paid/Unpaid toggle** on the Receivables report — click a
+  shipment's status badge (Editor role and above) to flip it; this is now a
+  real per-shipment flag in the database, not a guess based on freight terms.
 
-## Suggested next steps (Phase 2+)
+## Honest caveats — still worth knowing
 
-- Real authentication (hashed passwords, sessions) instead of the role-selector demo login.
-- A proper database (SQLite via `better-sqlite3` is a natural fit for a desktop app like
-  this) instead of the flat JSON store.
-- The remaining reports: manifest, customs manifest grouping, waybill, delivery report,
-  receivables/payables, tax invoices, P&L, job profitability.
-- A genuine Google Drive API connection (OAuth) if you want live cloud sync rather than
-  relying on the Drive desktop client mirroring a folder.
-- Code-signing the installer (Windows/macOS both warn on unsigned apps) before distributing
-  it outside your own machine.
-# CargoEasy
+- Financial figures across the reports (freight rates, duty %, overweight
+  surcharge, estimated cost) are placeholder rate assumptions, clearly
+  labelled in the Reports Center. Replace with your real tariffs before using
+  these for actual invoicing or accounting.
+- There's no password-reset-by-email flow (no mail server in a desktop app
+  like this) — an Admin resets a locked-out user by deleting and re-creating
+  their account, or you extend `users:changePassword` with an admin-override
+  path.
+- IPC handlers trust whatever role the renderer sends for now — fine for a
+  single-user desktop app, but if you ever expose this over a network, add
+  server-side role checks in `main.js`, not just the UI hiding buttons.
+
+## Suggested next steps (Phase 3+)
+
+- A genuine Google Drive API connection (OAuth) if you want live cloud sync
+  rather than relying on the Drive desktop client mirroring a folder.
+- Code-signing the installer (Windows/macOS both warn on unsigned apps)
+  before distributing it outside your own machine.
+- Customer-facing tracking portal, email notifications, and audit logging of
+  who changed what.
